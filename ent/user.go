@@ -14,11 +14,32 @@ import (
 type User struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID int64 `json:"id,omitempty"`
 	// Age holds the value of the "age" field.
 	Age int `json:"age,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges UserEdges `json:"edges"`
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Car holds the value of the car edge.
+	Car []*Car `json:"car,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// CarOrErr returns the Car value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CarOrErr() ([]*Car, error) {
+	if e.loadedTypes[0] {
+		return e.Car, nil
+	}
+	return nil, &NotLoadedError{edge: "car"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -50,7 +71,7 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
-			u.ID = int(value.Int64)
+			u.ID = int64(value.Int64)
 		case user.FieldAge:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field age", values[i])
@@ -66,6 +87,11 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 		}
 	}
 	return nil
+}
+
+// QueryCar queries the "car" edge of the User entity.
+func (u *User) QueryCar() *CarQuery {
+	return (&UserClient{config: u.config}).QueryCar(u)
 }
 
 // Update returns a builder for updating this User.

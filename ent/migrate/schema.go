@@ -8,9 +8,29 @@ import (
 )
 
 var (
+	// CarsColumns holds the columns for the "cars" table.
+	CarsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "value", Type: field.TypeString},
+	}
+	// CarsTable holds the schema information for the "cars" table.
+	CarsTable = &schema.Table{
+		Name:       "cars",
+		Columns:    CarsColumns,
+		PrimaryKey: []*schema.Column{CarsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "cars_users_car",
+				Columns:    []*schema.Column{CarsColumns[1]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "age", Type: field.TypeInt},
 		{Name: "name", Type: field.TypeString},
 	}
@@ -22,9 +42,11 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		CarsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	CarsTable.ForeignKeys[0].RefTable = UsersTable
 }
